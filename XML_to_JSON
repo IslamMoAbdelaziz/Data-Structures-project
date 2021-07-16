@@ -198,23 +198,27 @@ int main () {
     
       
 
-    while(!stack.empty()){
+        while(!stack.empty()){
         equal = true ;
-      
-      for(int i =1; i<=p->chN ;i++){
-        if (p->child[1]->key !=p->child[i]->key)
-              { equal = false ;  }  
-              } 
+
+      for(int i =1; i<= p->chN ;i++){
+
+        if (p->child[1]->key != p->child[i]->key)
+              { equal = false ;  }
+              }
               stack.pop();
-               if(p->chN == 0);
-              else if(equal)
-                 {  p->value = "[" ;}
-                 else {p->value = "{" ;}
-                // cout <<endl<<p->key<< p->value ;
-           for(int i =1; i<=p->chN ;i++){
+              for(int i =1; i<= p->chN ;i++){
            stack.push(p->child[i]);
-                              }     
-                 p = stack.top();
+                              }
+
+               if(p->chN == 0);
+              else if(!equal || p->chN == 1)
+                 {  p->value = "{" ;}
+                 else {p->value = "[" ;}
+
+
+               if(!stack.empty()){  p = stack.top();}else{break ;}
+
                 }
                 
    //cout<<"  " <<tree.height <<"   ";
