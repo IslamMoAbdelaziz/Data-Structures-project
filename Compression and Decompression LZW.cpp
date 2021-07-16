@@ -40,7 +40,7 @@ string Compression(string s1)
 
     for(int i=0;output_code.size();i++)
     {
-        output += to_string(output_code)+" ";
+        output += to_string(output_code[i])+" ";
     }
     return output;
 }
@@ -72,6 +72,7 @@ string Decompression(string input)
     string s = table[old];
     string c = "";
     c += s[0];
+    output += s;
     int count = 256;
     for (int i = 0; i < op.size() - 1; i++) {
         n = op[i + 1];
