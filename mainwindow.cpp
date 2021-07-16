@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-//#include "format.cpp"
 #include <string>
 #include <iostream>
 #include <stack>
@@ -8,6 +7,7 @@
 #include <vector>
 #include <queue>
 #define max 100
+//#include <unordered_map>
 using namespace std;
 
 MainWindow::MainWindow(QWidget *parent)
@@ -172,6 +172,134 @@ void MainWindow::on_actionRedo_triggered()
 void MainWindow::on_actionCheck_Consistency_triggered()
 {
 
+    QString str = ui->textEdit->toPlainText();
+    string ostr = "";
+    QTextStream myfile(&str);
+//    QTextStream out(&ostr);
+
+    int begin = 0;
+    int end = 0;
+
+    QTextCharFormat fmt;
+    fmt.setBackground(Qt::darkRed);
+
+    QTextCursor cursor = ui->textEdit->textCursor();
+//    QTextCursor cursor(ui->textEdit->document());
+
+    stack<string> seq;
+    string tag = "";
+    int tag_parse = 0;
+    int tag_closing = 0;
+    string line;
+    int line_counter = -1;
+    int counter = 0;
+
+    while (!myfile.atEnd()) {
+
+        line_counter++;
+//        cursor.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor, line_counter);
+//        cursor.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor);
+//        ui->textEdit->setTextCursor(cursor); // The line to add
+
+
+        QString qline = myfile.readLine();
+        string line = qline.toLocal8Bit().constData();
+//        begin = 0;
+//        end = 0;
+
+
+        for (int i = 0; i < line.size(); i++) {
+            char a = line[i];
+            if (!tag_parse){
+                ostr.push_back(a);
+            }
+
+            if (a == '<') {
+                if (line[i + 1] != '?' && line[i + 1] != '-'){
+                    if (line[i + 1] == '/') {
+                        i++;
+                        counter++;
+                        tag_closing = 1;
+                    }
+                    tag_parse = 1;
+                }else{
+                    tag_parse = 0;
+//                    ostr.erase (0, 1);
+//                    ostr.push_back(line[i]);
+                }
+
+            }
+
+            else if (a == '>') {
+                //stop parsing and check matching
+                if (tag != "") {
+                    string s = "";
+                    if (!seq.empty()) {
+                        s = seq.top();
+                        if (tag == s && tag_closing) {
+                            seq.pop();
+//                            ostr+= tag.substr(1,tag.length()) + "/>\n";
+                            begin = 0;
+                            end = 0;
+                        }
+                        else if (tag != s && tag_closing) {
+//                            ostr.erase (ostr.length()-1, ostr.length());
+//                            ostr+= s.substr(0,s.length()) + "/>\n";
+                            seq.pop();
+                            end = counter +3 + tag.length();
+                            begin = counter + 2;
+//                            cursor.movePosition(QTextCursor::, QTextCursor::MoveAnchor, begin);
+//                            cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, end);
+//                            cursor.setCharFormat(fmt);
+                        }
+                        else {
+                            seq.push(tag);
+//                            ostr+= tag + ">";
+                        }
+                    }
+                    else {
+                        seq.push(tag);
+//                        ostr+= tag + ">";
+                    }
+                }
+                tag_parse = 0;
+                tag_closing = 0;
+                tag = "";
+            }
+
+            else {
+                //parsing
+                if (a == '/' && line[i + 1] == '>') {
+                    tag_parse = 0;
+                    tag = "";
+                }
+                else if (tag_parse == 1) {
+                    if (a == ' ') tag_parse = 0;
+                    else {
+                        tag.push_back(a);
+
+                    }
+                }
+
+            }
+            counter ++;
+        }
+        cursor.setPosition(begin, QTextCursor::MoveAnchor);
+        cursor.setPosition(end, QTextCursor::KeepAnchor);
+        cursor.setCharFormat(fmt);
+
+    }
+
+
+//    while (!seq.empty()) {
+//        ostr+= "<"+seq.top() + "/>\n";
+//        seq.pop();
+//    }
+
+//         QString qstr = QString::fromStdString(ostr);
+//         ui->textEdit->setText(qstr);
+
+
 }
 
 
@@ -189,6 +317,7 @@ void MainWindow::on_actionSolve_Errors_triggered()
     int tag_parse = 0;
     int tag_closing = 0;
     string line;
+    int counter = 0, hold=0, past_hold=0;
 
     while (!myfile.atEnd()) {
         QString qline = myfile.readLine();
@@ -198,12 +327,14 @@ void MainWindow::on_actionSolve_Errors_triggered()
             char a = line[i];
             if (!tag_parse){
                 ostr.push_back(a);
+                counter ++;
             }
 
             if (a == '<') {
                 if (line[i + 1] != '?' && line[i + 1] != '-'){
                     if (line[i + 1] == '/') {
                         i++;
+                        counter ++;
                         ostr.push_back(line[i + 1]);
                         tag_closing = 1;
                     }
@@ -217,6 +348,8 @@ void MainWindow::on_actionSolve_Errors_triggered()
             }
 
             else if (a == '>') {
+                hold = past_hold;
+                past_hold = counter;
                 //stop parsing and check matching
                 if (tag != "") {
                     string s = "";
@@ -225,6 +358,7 @@ void MainWindow::on_actionSolve_Errors_triggered()
                         if (tag == s && tag_closing) {
                             seq.pop();
                             ostr+= tag.substr(1,tag.length()) + "/>\n";
+
                         }
                         else if (tag != s && tag_closing) {
                             ostr.erase (ostr.length()-1, ostr.length());
@@ -260,6 +394,7 @@ void MainWindow::on_actionSolve_Errors_triggered()
                 }
 
             }
+            counter ++;
         }
     }
 
@@ -270,6 +405,7 @@ void MainWindow::on_actionSolve_Errors_triggered()
 
          QString qstr = QString::fromStdString(ostr);
          ui->textEdit->setText(qstr);
+      //   seq.erase
 
 }
 
@@ -614,28 +750,33 @@ void MainWindow::on_actionConvert_to_JSON_triggered()
 
 
     while(!stack.empty()){
-        equal = true ;
+            equal = true ;
 
-      for(int i =1; i<=p->chN ;i++){
-        if (p->child[1]->key !=p->child[i]->key)
-              { equal = false ;  }
-              }
-              stack.pop();
-               if(p->chN == 0);
-              else if(equal)
-                 {  p->value = "[" ;}
-                 else {p->value = "{" ;}
-                // cout <<endl<<p->key<< p->value ;
-           for(int i =1; i<=p->chN ;i++){
-           stack.push(p->child[i]);
-                              }
-                 p = stack.top();
-                }
+          for(int i =1; i<= p->chN ;i++){
+
+            if (p->child[1]->key != p->child[i]->key)
+                  { equal = false ;  }
+                  }
+                  stack.pop();
+                  for(int i =1; i<= p->chN ;i++){
+               stack.push(p->child[i]);
+                                  }
+
+                   if(p->chN == 0);
+                  else if(!equal || p->chN == 1)
+                     {  p->value = "{" ;}
+                     else {p->value = "[" ;}
+
+
+                   if(!stack.empty()){  p = stack.top();}else{break ;}
+
+                    }
 
    //cout<<"  " <<tree.height <<"   ";
   //cout<<endl<< tree.root->child[1]->child[4]->child[1]->key;
 
 
+     out = "";
    p = tree.root ;
      tree.printjson(p);
  myjson << "}";
@@ -669,28 +810,102 @@ void MainWindow::on_actionCompress_triggered()
 {
 
     QString qstr = ui->textEdit->toPlainText();
-    string str = qstr.toLocal8Bit().constData();
-    QString output = "";
-    string x = "";
-    int length = str.length();
-    for (int i = 0; i < length; i++) {
+    string s1 = qstr.toLocal8Bit().constData();
+    string output = "";
 
-        int count = 1;
-        while (i < length - 1 && str[i] == str[i + 1]) {
-            count++;
-            i++;
-        }
-
-           x += to_string(count);
-           x.push_back(str[i]);      // character and its count
-
-
+    unordered_map<string, int> table;
+    for (int i = 0; i <= 255; i++) {
+        string ch = "";
+        ch += char(i);
+        table[ch] = i;
     }
 
-             QString q = QString::fromStdString(x);
+    string p = "", c = "";
+    p += s1[0];
+    int code = 256;
+    vector<int> output_code;
+    for (int i = 0; i < s1.length(); i++) {
+        if (i != s1.length() - 1)
+            c += s1[i + 1];
+        if (table.find(p + c) != table.end()) {
+            p = p + c;
+        }
+        else {
+            output_code.push_back(table[p]);
+            table[p + c] = code;
+            code++;
+            p = c;
+        }
+        c = "";
+    }
+    output_code.push_back(table[p]);
 
-             ui->textEdit->setText(q);
 
+    for(int i=0;i<output_code.size();i++)
+    {
+        output+= to_string(output_code[i])+" ";
+    }
+
+    QString qout = QString::fromStdString(output);
+
+    ui->textEdit->setText(qout);
+
+
+
+}
+
+
+void MainWindow::on_actionDe_Compress_triggered()
+{
+    QString qstr = ui->textEdit->toPlainText();
+    string input = qstr.toLocal8Bit().constData();
+    string output = "";
+
+    vector<int> op;
+    string temp="";
+
+    for(int i=0;i<input.size();i++)
+    {
+    if(input[i]==' ')
+    {
+    op.push_back( stoi(temp) );
+    temp="";
+    continue;
+    }
+    temp.push_back(input[i]);
+    }
+    unordered_map<int, string> table;
+    for (int i = 0; i <= 255; i++) {
+    string ch = "";
+    ch += char(i);
+    table[i] = ch;
+    }
+    int old = op[0], n;
+    string s = table[old];
+    string c = "";
+    c += s[0];
+    output += s;
+    int count = 256;
+    for (int i = 0; i < op.size() - 1; i++) {
+    n = op[i + 1];
+    if (table.find(n) == table.end()) {
+    s = table[old];
+    s = s + c;
+    }
+    else {
+    s = table[n];
+    }
+    output+= s;
+    c = "";
+    c += s[0];
+    table[count] = table[old] + c;
+    count++;
+    old = n;
+    }
+
+    QString qout = QString::fromStdString(output);
+
+    ui->textEdit->setText(qout);
 
 }
 
