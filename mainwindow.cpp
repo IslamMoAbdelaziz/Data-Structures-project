@@ -171,20 +171,86 @@ void MainWindow::on_actionRedo_triggered()
 
 void MainWindow::on_actionCheck_Consistency_triggered()
 {
+    QString qin = ui->textEdit->toPlainText();
+    string in = qin.toLocal8Bit().constData();
+    string out;
+
+    QTextCharFormat fmt;
+    fmt.setBackground(Qt::darkRed);
+
+    QTextCursor cursor = ui->textEdit->textCursor();
+
+    char c, a, b;
+    int hold = 0, start = 0, cut_length = 0, flag = 0;
+
+    int begin = 0;
+    int end = 0;
+
+    for(int j = 0; j < in.length(); j++){
+        c = in[j];
+        out.push_back(c);
+
+        flag = 0;
+
+        if(c=='>'){
+            hold = j;
+            start = 1;
+        }
+        if(c=='<'&& in[j+1]!='/' && start == 1 ){
+            cut_length = j - hold;
+            if (out.substr(out.length()-cut_length, 1)=="\n") a = 1; else a = 0;
+            if (out.substr(out.length(), 1)=="\n") {if (a == 1) b = 0; else b = 1;} else b = 0;
+            if (out.length()-cut_length +a - (out.length() -1 -b) > 0){
+                begin = out.length()-cut_length +a;
+                end =  out.length() -1 -b;
+
+                flag=0;
+                for(int h = begin; h<end; h++){
+                    if (in[h] != ' ') {
+                        flag = 1;
+                        break;
+                    }
+                }
+                int count = 0;
+                for(int h = end-1; h>= begin; h--){
+                    if (in[h] != ' ') {
+                        break;
+                    }else {
+                        count++;
+                    }
+                }
+                end -= count;
+
+                if (flag){
+                    cursor.setPosition(begin, QTextCursor::MoveAnchor);
+                    cursor.setPosition(end, QTextCursor::KeepAnchor);
+                    cursor.setCharFormat(fmt);
+                }
+
+
+            }
+            if (out.substr(out.length()-1, 1)!="<") { out.push_back('\n'); out.push_back(c);}
+
+            start = 0;
+        }else if(c=='<'&& in[j+1]=='/'){
+            start = 0;
+        }
+    }
+
+
+    /////////////////////////////////////////////////////
 
     QString str = ui->textEdit->toPlainText();
     string ostr = "";
     QTextStream myfile(&str);
 //    QTextStream out(&ostr);
 
-    int begin = 0;
-    int end = 0;
+    begin = 0;
+    end = 0;
 
-    QTextCharFormat fmt;
-    fmt.setBackground(Qt::darkRed);
-
-    QTextCursor cursor = ui->textEdit->textCursor();
-//    QTextCursor cursor(ui->textEdit->document());
+    cursor.setPosition(begin, QTextCursor::MoveAnchor);
+    cursor.setPosition(end, QTextCursor::KeepAnchor);
+    cursor.setCharFormat(fmt);
 
     stack<string> seq;
     string tag = "";
@@ -290,21 +356,53 @@ void MainWindow::on_actionCheck_Consistency_triggered()
 
     }
 
-
-//    while (!seq.empty()) {
-//        ostr+= "<"+seq.top() + "/>\n";
-//        seq.pop();
-//    }
-
-//         QString qstr = QString::fromStdString(ostr);
-//         ui->textEdit->setText(qstr);
-
-
 }
 
 
 void MainWindow::on_actionSolve_Errors_triggered()
 {
+
+    QString qin = ui->textEdit->toPlainText();
+    string in = qin.toLocal8Bit().constData();
+    string out;
+
+    QTextCharFormat fmt;
+    fmt.setBackground(QColor(35,38,41,255));
+
+    QTextCursor cursor = ui->textEdit->textCursor();
+    cursor.setPosition(0, QTextCursor::MoveAnchor);
+    cursor.setPosition(in.length(), QTextCursor::KeepAnchor);
+    cursor.setCharFormat(fmt);
+
+    char c, a, b;
+    int hold = 0, start = 0, cut_length = 0;
+    for(int j = 0; j < in.length(); j++){
+        c = in[j];
+        out.push_back(c);
+
+        if(c=='>'){
+            hold = j;
+            start = 1;
+        }
+        if(c=='<'&& in[j+1]!='/' && start == 1 ){
+            cut_length = j - hold;
+            if (out.substr(out.length()-cut_length, 1)=="\n") a = 1; else a = 0;
+            if (out.substr(out.length(), 1)=="\n") {if (a == 1) b = 0; else b = 1;} else b = 0;
+            if (out.length()-cut_length +a - (out.length() -1 -b) > 0)
+                out.erase (out.length()-cut_length +a, out.length() -1 -b);
+            if (out.substr(out.length()-1, 1)!="<") { out.push_back('\n'); out.push_back(c);}
+
+            start = 0;
+        }else if(c=='<'&& in[j+1]=='/'){
+            start = 0;
+        }
+    }
+    QString qout = QString::fromStdString(out);
+    ui->textEdit->setText(qout);
+
+
+    /////////////////////////////////////
+
     QString str = ui->textEdit->toPlainText();
     string ostr = "";
     QTextStream myfile(&str);
@@ -317,7 +415,7 @@ void MainWindow::on_actionSolve_Errors_triggered()
     int tag_parse = 0;
     int tag_closing = 0;
     string line;
-    int counter = 0, hold=0, past_hold=0;
+    int counter = 0;
 
     while (!myfile.atEnd()) {
         QString qline = myfile.readLine();
@@ -335,7 +433,7 @@ void MainWindow::on_actionSolve_Errors_triggered()
                     if (line[i + 1] == '/') {
                         i++;
                         counter ++;
-                        ostr.push_back(line[i + 1]);
+                        ostr.push_back('/');ostr.push_back(line[i + 1]);
                         tag_closing = 1;
                     }
                     tag_parse = 1;
@@ -348,8 +446,8 @@ void MainWindow::on_actionSolve_Errors_triggered()
             }
 
             else if (a == '>') {
-                hold = past_hold;
-                past_hold = counter;
+//                hold = past_hold;
+//                past_hold = counter;
                 //stop parsing and check matching
                 if (tag != "") {
                     string s = "";
@@ -357,12 +455,12 @@ void MainWindow::on_actionSolve_Errors_triggered()
                         s = seq.top();
                         if (tag == s && tag_closing) {
                             seq.pop();
-                            ostr+= tag.substr(1,tag.length()) + "/>\n";
+                            ostr+= tag.substr(1,tag.length()) + ">\n";
 
                         }
                         else if (tag != s && tag_closing) {
                             ostr.erase (ostr.length()-1, ostr.length());
-                            ostr+= s.substr(0,s.length()) + "/>\n";
+                            ostr+= s.substr(0,s.length()) + ">\n";
                             seq.pop();
                         }
                         else {
@@ -378,6 +476,7 @@ void MainWindow::on_actionSolve_Errors_triggered()
                 tag_parse = 0;
                 tag_closing = 0;
                 tag = "";
+//                if ( line[i + 1] != '\n') ostr+= "\n";
             }
 
             else {
@@ -399,7 +498,7 @@ void MainWindow::on_actionSolve_Errors_triggered()
     }
 
     while (!seq.empty()) {
-        ostr+= "<"+seq.top() + "/>\n";
+        ostr+= "</"+seq.top() + ">\n";
         seq.pop();
     }
 
